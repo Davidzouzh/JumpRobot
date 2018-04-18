@@ -555,6 +555,11 @@
               <FilePath>.\User\servo.c</FilePath>
             </File>
             <File>
+              <FileName>tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\tim.c</FilePath>
+            </File>
+            <File>
               <FileName>timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\User\timer.c</FilePath>
