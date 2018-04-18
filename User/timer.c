@@ -2,7 +2,7 @@
 
 #include "timer.h"
 
-
+#include "pwm.h"
 
 volatile uint32_t sysTickUptime = 0;
 volatile uint32_t usTicks = 0;
