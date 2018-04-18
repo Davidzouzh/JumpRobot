@@ -22,6 +22,7 @@ main.c
 	舵机			PA6	
 -------------------------------------------
 */
+#include "stm32f10x.h"
 
 #include "timer.h"
 
@@ -34,6 +35,8 @@ main.c
 #include "control.h"
 
 #include "usmart.h"
+
+#include "stdlib.h"
 
 
 
@@ -56,6 +59,10 @@ float OUT_Pressure1[CURVE_LEN], OUT_Pressure2[CURVE_LEN];
 
 #define ServoActionTime		50		//自按下开关开始计时，梯度 5ms
 
+#define DefaultDisplace		10		//液压缸初始化时的位置
+
+
+void Set_DefaultDisplace(void);
 
 //主函数入口
 int main(void)
@@ -92,7 +99,18 @@ int main(void)
 
 	PID_Default();				//PID赋默认值
 	
-	printf("system init success.\r\n");
+	Set_DefaultDisplace();
+	
+	delay_ms(200);
+	if(	LVDT.Rate<0.2 && LVDT.Rate>-0.2 &&
+		(LVDT.Displace-DefaultDisplace)<0.2 && (LVDT.Displace-DefaultDisplace)>-0.2 )
+	{
+		printf("system init success.\r\n");
+	}
+	else
+	{
+		printf("DefaultDisplace is not right.\r\n");
+	}
 	
 
 	while(1)
@@ -213,6 +231,8 @@ int main(void)
 				printf("\r\n");
 				
 				printf("\r\n\r\n");
+				
+				PID_Reset();
 				command = CMD_ZERO;
 				break;
 				
@@ -251,4 +271,22 @@ int main(void)
 	}
 }
 
+
+void Set_DefaultDisplace(void)
+{
+	do
+	{
+		if( LVDT.Displace < DefaultDisplace )
+		{
+			Valve_DacFlash(160*abs((int32_t)(LVDT.Displace-DefaultDisplace)), 0);
+		}
+		else
+		{
+			Valve_DacFlash(0, 160*abs((int32_t)(LVDT.Displace-DefaultDisplace)));
+		}
+	}while(	LVDT.Rate<0.2 && LVDT.Rate>-0.2 &&
+		(LVDT.Displace-DefaultDisplace)<0.2 && (LVDT.Displace-DefaultDisplace)>-0.2 );//速度为0，且静态偏差小于0.2则认为初始化完成
+	
+	Valve_DacFlash(0,0);
+}
 

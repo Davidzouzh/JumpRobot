@@ -41,6 +41,7 @@ void CtrlLVDTRate(void);
 void CtrlValve(void);
 
 void PID_Default(void);
+void PID_Reset(void);
 void PID_assign(uint8_t pid_num, uint16_t p, uint16_t i, uint16_t d);
 void PID_Printf(void);
 
