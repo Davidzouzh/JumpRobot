@@ -1,14 +1,7 @@
-#ifndef CONTROL__
-#define CONTROL__
+#ifndef CONTROL_H
+#define CONTROL_H
 
 #include "stm32f10x.h"
-
-
-
-#define  LVDT_ProtectMax			50					//定义位移传感器最大范围，单位cm
-
-#define  VALVE_DEADLINE_OUT			700						//比例阀的死区
-#define  VALVE_DEADLINE_IN			1000
 
 
 // PID结构体
@@ -20,8 +13,6 @@ typedef struct
     float Desired;
     float Error;
     float PreError;
-    float PrePreError;
-    float Increment;
     float Integ;
 	float iLimit;
     float Deriv;
@@ -33,7 +24,8 @@ extern PID_Typedef LVDT_displace_PID;
 extern PID_Typedef LVDT_rate_PID;
 
 extern float DisplaceSp;
-extern float Out2Valve;//这个pid输出值全局变量化只是为了能在主函数里查看
+
+extern float Out2Valve;
 
 
 void CtrlLVDTDisplace(void);
@@ -42,9 +34,13 @@ void CtrlValve(void);
 
 void PID_Default(void);
 void PID_Reset(void);
-void PID_assign(uint8_t pid_num, uint16_t p, uint16_t i, uint16_t d);
-void PID_Printf(void);
 
+void Set_Displace(float displace);
+
+//调试用函数
+void Assign_PID(uint8_t pid_num, uint16_t p, uint16_t i, uint16_t d);
+void Print_PID(void);
 
 #endif
+
 

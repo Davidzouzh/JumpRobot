@@ -7,10 +7,12 @@
 #define PWM_ServoUnlock		150
 
 
-void PWM_Config(void);
+void Servo_Config(void);
+
 void Servo_Lock(void);
 void Servo_Unlock(void);
 
 
 #endif
+
 

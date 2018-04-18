@@ -1,8 +1,8 @@
 
-#include "pwm.h"
+#include "servo.h"
 
 
-void PWM_Config(void)
+void Servo_Config(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure; 
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;  
@@ -49,7 +49,5 @@ void Servo_Unlock(void)
 {
 	TIM_SetCompare1(TIM3, PWM_ServoUnlock);
 }
-
-
 
 

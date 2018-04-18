@@ -1,5 +1,5 @@
-#include "usart.h"	  
-
+#include "usart.h"
+#include "timer.h"
 
 
 //加入以下代码,支持printf函数,而不需要选择use MicroLIB	  
@@ -8,8 +8,7 @@
 //标准库需要的支持函数                 
 struct __FILE 
 { 
-	int handle; 
-
+	int handle;
 }; 
 
 FILE __stdout;       
@@ -45,7 +44,7 @@ void USART1_Config(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
-	 
+	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1|RCC_APB2Periph_GPIOA, ENABLE);	//使能USART1，GPIOA时钟
   
 	//USART1_TX   GPIOA.9
@@ -58,30 +57,28 @@ void USART1_Config(void)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;//PA10
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;//浮空输入
 	GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIOA.10  
-
-	//Usart1 NVIC 配置
-	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=3 ;//抢占优先级3
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;		//子优先级3
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
-	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
   
-   //USART 初始化设置
-
+	//USART 初始化设置
 	USART_InitStructure.USART_BaudRate = 115200;//串口波特率
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;//字长为8位数据格式
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;//一个停止位
 	USART_InitStructure.USART_Parity = USART_Parity_No;//无奇偶校验位
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;//无硬件数据流控制
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;	//收发模式
-
 	USART_Init(USART1, &USART_InitStructure); //初始化串口1
+	
+	//Usart1 NVIC 配置
+	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;//抢占优先级3
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;		//子优先级3
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
+	NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
+	
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);//开启串口接受中断
 	USART_Cmd(USART1, ENABLE);                    //使能串口1 
 
 }
 
-uint8_t command = cmd_zero;
 
 void USART1_IRQHandler(void)                	//串口1中断服务程序
 {
@@ -100,25 +97,7 @@ void USART1_IRQHandler(void)                	//串口1中断服务程序
 				else
 				{
 					USART_RX_STA|=0x8000;	//接收完成了
-					if( USART_RX_BUF[0]=='c' && USART_RX_BUF[1]=='m' && USART_RX_BUF[2]=='d' )
-					{
-						switch(USART_RX_BUF[4])
-						{
-							case 'o':	//伸出 cmd_out
-								command = cmd_out;
-								break;
-							
-							case 'b':	//缩回 cmd_back
-								command = cmd_back;
-								break;
-
-							default:
-								command = cmd_zero;
-								break;
-						}
-					}
-				}
-				
+				}	
 			}
 			else //还没收到0X0D
 			{	
@@ -191,16 +170,16 @@ uint8_t cnt2=0;
 uint8_t TxCnt2=0;
 uint8_t RxCnt2=0;
 
-uint8_t StartReceiveFlag=0;
-uint16_t count=0;
-uint16_t distance[1000];
+uint8_t StartMeasureFlag=0;
+uint16_t DistanceBufCnt=0;
+uint16_t DistanceBuf[1000];
 
 
 void Usart2_CopeSerial2Data(uint8_t ucData)
 {
 	uint8_t i,checksum=0;
 	
-	if(StartReceiveFlag == 0)
+	if(StartMeasureFlag != 1)
 	{
 		return;
 	}
@@ -211,9 +190,8 @@ void Usart2_CopeSerial2Data(uint8_t ucData)
 		RxCnt2=0;
 		return;
 	}
-	if( RxCnt2==2 && RxBuffer2[1]!=0x5A ) //数据头不对，则重新开始寻找0x5A数据头
+	if( RxCnt2==2 && RxBuffer2[1]!=0x5A ) //第2个数据头不对，则重新开始寻找0x5A数据头
 	{
-		RxBuffer2[0]=0;
 		RxCnt2=0;
 		return;
 	}
@@ -233,12 +211,11 @@ void Usart2_CopeSerial2Data(uint8_t ucData)
 	}
 	else
 	{
-		distance[count++] = RxBuffer2[4]<<8 | RxBuffer2[5];
+		DistanceBuf[DistanceBufCnt++] = RxBuffer2[4]<<8 | RxBuffer2[5];
 		RxCnt2=0;
 	}
 	
 }
-
 
 //USART2中断
 void USART2_IRQHandler(void)
@@ -261,8 +238,6 @@ void USART2_IRQHandler(void)
 	USART_ClearITPendingBit(USART2, USART_IT_ORE);
 }
 
-
-
 void USART2_Put_Char(uint8_t DataToSend)
 {
 	TxBuffer2[cnt2++] = DataToSend;  
@@ -270,21 +245,41 @@ void USART2_Put_Char(uint8_t DataToSend)
 }
 
 
+
+uint32_t MeasureStartTime,Measure_T=0;
+
 void Start_MeasureDistance(void)
 {
-	StartReceiveFlag=1;
-	count=0;
+	StartMeasureFlag=1;
+	DistanceBufCnt=0;
+	
+	MeasureStartTime = micros();
 }
 
 void Stop_MeasureDistance(void)
 {
-	StartReceiveFlag=0;
+	StartMeasureFlag=0;
+	
+	Measure_T = (micros()-MeasureStartTime)/DistanceBufCnt;
 }
 
 void Reset_MeasureDistance(void)
 {
-	StartReceiveFlag=0;
-	count=0;
+	StartMeasureFlag=0;
+	DistanceBufCnt=0;
+}
+
+void Print_MeasureDistance(void)
+{
+	uint16_t i;
+	
+	printf("\r\n*****************************************\r\n");
+	printf("measure T is %d us.\r\n", Measure_T);
+	printf("The distance is\r\n");
+	for(i=0;i<DistanceBufCnt;i++)
+		printf("%d, ", DistanceBuf[i]);
+	
+	printf("\r\n*****************************************\r\n");
 }
 
 void Set_MeasureDistance(void)

@@ -1,34 +1,33 @@
-
-
 #include "adc.h"
 #include "timer.h"
+#include "usart.h"
 
 
 
 __IO uint32_t ADCConvertedValue[10];
 
 
-void adc_Init(void)
+void ADC_Config(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	ADC_InitTypeDef ADC_InitStructure;
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	DMA_InitTypeDef DMA_InitStructure;
-	//NVIC_InitTypeDef NVIC_InitStructure;
 
 //开启时钟，TIM2，ADC1，ADC2，GPIOA，AFIO
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_ADC2 | RCC_APB2Periph_GPIOC, ENABLE);
-	RCC_ADCCLKConfig(RCC_PCLK2_Div6);	//设置ADC分频因子6 72M/6=12,ADC最大时间不能超过14M,否则将导致ADC准确度下降! 
+	RCC_ADCCLKConfig(RCC_PCLK2_Div6);
+	//设置ADC分频因子6 72M/6=12,ADC最大时间不能超过14M,否则将导致ADC准确度下降! 
 
 //GPIOC配置                        
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;	//模拟输入
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	
-	
+
 //TIM2配置
 	TIM_TimeBaseStructure.TIM_Period = 3599;
 	TIM_TimeBaseStructure.TIM_Prescaler = 1;//72Mhz/(3599+1)/(1+1)=1000Hz,也就是1ms1个点，5ms就能采样出5个点
@@ -107,17 +106,6 @@ void adc_Init(void)
 
 	ADC_ExternalTrigConvCmd(ADC2, ENABLE);
 
-	
-//DMA1通道1中断配置
-	// NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel1_IRQn;
-	// NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	// NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	// NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	// NVIC_Init(&NVIC_InitStructure);
-	
-	//DMA_ClearITPendingBit(DMA_IT_TC | DMA_IT_HT);
-	//DMA_ITConfig(DMA1_Channel1, DMA_IT_TC | DMA_IT_HT, ENABLE);		//开启DMA1通道1的传输过半中断和传输完成中断
-	
 	ADC_DMACmd(ADC1, ENABLE);	//使能ADC1的DMA传输
   
 	TIM_Cmd(TIM2, ENABLE);		//使能TIM2
@@ -125,29 +113,15 @@ void adc_Init(void)
 }
 
 
-// void adcInterruptHandler(void)
-// {
-	// if(DMA_GetITStatus(DMA1_IT_HT1))
-	// {
-		// DMA_ClearITPendingBit(DMA1_IT_HT1);
-		
-	// }
-	// if(DMA_GetITStatus(DMA1_IT_TC1))
-	// {
-		// DMA_ClearITPendingBit(DMA1_IT_TC1);
-		
-	// }
-// }
-
-
 //定义一个位移传感器的信息结构体
-LVDT_Typedef LVDT, LVDT2;
+LVDT_Typedef LVDT1, LVDT2;
+
 
 //获得髋关节、膝关节的角度和角速度  
 void Get_LVDTDisplaceAndRate(void)  
 {  
     uint8_t i;
-    uint16_t sum=0, sum2=0;
+    uint16_t sum1=0, sum2=0;
 	
 	float dt = 0.01f;
 	static uint32_t tPrev=0;
@@ -158,41 +132,41 @@ void Get_LVDTDisplaceAndRate(void)
   
     for (i=0;i<5;i++) 
     {
-        sum += ADCConvertedValue[i*2]&0xFFFF;
+        sum1 += ADCConvertedValue[i*2]&0xFFFF;
 		sum2 += ADCConvertedValue[i*2+1]&0xFFFF;
     }
 	
-	LVDT.AD = sum/5;
+	LVDT1.AD = sum1/5;
 	LVDT2.AD = sum2/5;
 	
-	LVDT.Val = (LVDT.AD/4096.0) * ADC_VREF;
+	LVDT1.Val = (LVDT1.AD/4096.0) * ADC_VREF;
 	LVDT2.Val = (LVDT2.AD/4096.0) * ADC_VREF;
     
-	if(!LVDT.Ready || !LVDT2.Ready)
+	if(!LVDT1.Ready || !LVDT2.Ready)
 	{
-		LVDT.Bias = (LVDT.Val/ADC_MAX_Val) * LVDT_MAX;
-		LVDT.Displace = 0;
-		LVDT.Rate = 0;
-		LVDT.Ready = 1;
-		
-		LVDT2.Bias = (LVDT2.Val/ADC_MAX_Val) * LVDT2_MAX;
+		LVDT1.Bias = (LVDT1.Val/ADC_MAX_VAL) * LVDT1_MAX;
+		LVDT1.Displace = 0;
+		LVDT1.Rate = 0;
+		LVDT1.Ready = 1;
+
+		LVDT2.Bias = (LVDT2.Val/ADC_MAX_VAL) * LVDT2_MAX;
 		LVDT2.Displace = 0;
 		LVDT2.Rate = 0;
 		LVDT2.Ready = 1;
-		
 		return;
 	}
 	
-	LVDT.Old = LVDT.Displace;
+	LVDT1.Old = LVDT1.Displace;
 	LVDT2.Old = LVDT2.Displace;
 	
-	LVDT.Displace = (LVDT.Val/ADC_MAX_Val) * LVDT_MAX - LVDT.Bias;	//单位cm
-	LVDT2.Displace = (LVDT2.Val/ADC_MAX_Val) * LVDT2_MAX - LVDT2.Bias;
+	LVDT1.Displace = (LVDT1.Val/ADC_MAX_VAL) * LVDT1_MAX - LVDT1.Bias;	//单位cm
+	LVDT2.Displace = (LVDT2.Val/ADC_MAX_VAL) * LVDT2_MAX - LVDT2.Bias;
 	
-	LVDT.Rate = (LVDT.Displace - LVDT.Old) / dt;	//单位cm/s
+	LVDT1.Rate = (LVDT1.Displace - LVDT1.Old) / dt;	//单位cm/s
 	LVDT2.Rate = (LVDT2.Displace - LVDT2.Old) / dt;
 	
 }
+
 
 float Pressure1=0, Pressure2=0;
 
@@ -200,7 +174,7 @@ void Get_Pressure(void)
 {
 	uint8_t i;
     uint16_t adc=0,adc2=0;
-	for (i=0;i<5;i++) 
+	for (i=0;i<5;i++)
     {
         adc += ADCConvertedValue[i*2]>>16;
 		adc2 += ADCConvertedValue[i*2+1]>>16;
@@ -214,4 +188,18 @@ void Get_Pressure(void)
 	Pressure1 = 6.3797*3.26*adc/4096+0.1610;
 	Pressure2 = 6.3797*3.26*adc2/4096+0.1610;
 }
+
+
+void Print_LVDTDisplaceAndRate(void)
+{
+	Get_LVDTDisplaceAndRate();
+	printf("\r\nDisplace:1-%f, 2-%f\r\n", LVDT1.Displace, LVDT2.Displace);
+}
+
+void Print_Pressure(void)
+{
+	Get_Pressure();
+	printf("\r\nPressure: 1-%f, 2-%f\r\n", Pressure1, Pressure2);
+}
+
 

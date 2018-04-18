@@ -1,5 +1,5 @@
-#ifndef USART__
-#define USART__
+#ifndef USART_H
+#define USART_H
 
 
 #include "stm32f10x.h"
@@ -12,24 +12,21 @@ extern u8  USART_RX_BUF[USART_REC_LEN]; //½ÓÊÕ»º³å,×î´óUSART_REC_LEN¸ö×Ö½Ú.Ä©×Ö½
 extern u16 USART_RX_STA;         		//½ÓÊÕ×´Ì¬±ê¼Ç	
 
 
+extern uint8_t StartMeasureFlag;
+extern uint16_t DistanceBufCnt;
+extern uint16_t DistanceBuf[1000];
 
-#define cmd_out			0				//ÒºÑ¹¸×²Ù×÷Ö¸Áî£¬Éì³ö¡¢Ëõ»Ø¡¢²»²Ù×÷
-#define cmd_back		1
-#define cmd_zero		2
-extern uint8_t command;
-
-extern uint8_t StartReceiveFlag;
-extern uint16_t count;
-extern uint16_t distance[1000];
+extern uint32_t Measure_T;
 
 void USART1_Config(void);
 void USART2_Config(void);
 void USART2_Put_Char(uint8_t DataToSend);
 
-
 void Start_MeasureDistance(void);
 void Stop_MeasureDistance(void);
 void Reset_MeasureDistance(void);
+void Print_MeasureDistance(void);
+
 void Set_MeasureDistance(void);
 
 #endif
