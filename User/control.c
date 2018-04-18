@@ -123,6 +123,12 @@ void PID_Default(void)
 
 }
 
+void PID_Reset(void)
+{
+	LVDT_displace_PID.Integ = 0.0;
+	LVDT_rate_PID.Integ = 0.0;
+}
+
 
 //描述：PID赋值，主要由usmart组件调用
 //注意：参数 pid_num
