@@ -24,7 +24,7 @@ void adc_Init(void)
 	RCC_ADCCLKConfig(RCC_PCLK2_Div6);	//设置ADC分频因子6 72M/6=12,ADC最大时间不能超过14M,否则将导致ADC准确度下降! 
 
 //GPIOC配置                        
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;	//模拟输入
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	
@@ -73,8 +73,8 @@ void adc_Init(void)
 	ADC_InitStructure.ADC_NbrOfChannel = 2;	//顺序进行规则转换的ADC通道的数目
 	ADC_Init(ADC1, &ADC_InitStructure);
 	//ADC1转换通道队列配置
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_28Cycles5);		//ADC1通道0，PC0
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_17, 2, ADC_SampleTime_28Cycles5);	//内部参考电压通道
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 1, ADC_SampleTime_28Cycles5);		//ADC1通道10，PC0
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_11, 2, ADC_SampleTime_28Cycles5);		//ADC2通道11，PC1
 
 //ADC2配置
 	ADC_DeInit(ADC2);
@@ -86,8 +86,8 @@ void adc_Init(void)
 	ADC_InitStructure.ADC_NbrOfChannel = 2;
 	ADC_Init(ADC2, &ADC_InitStructure);
 	//ADC2转换通道队列配置
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_11, 1, ADC_SampleTime_28Cycles5);		//ADC2通道1，PC1
-	ADC_RegularChannelConfig(ADC2, ADC_Channel_12, 2, ADC_SampleTime_28Cycles5);		//ADC2通道2，PC2
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_12, 1, ADC_SampleTime_28Cycles5);		//ADC2通道12，PC2
+	ADC_RegularChannelConfig(ADC2, ADC_Channel_13, 2, ADC_SampleTime_28Cycles5);		//ADC2通道13，PC3
 	
 
 	ADC_Cmd(ADC1, ENABLE);	//使能ADC1
@@ -97,7 +97,7 @@ void adc_Init(void)
 	while(ADC_GetCalibrationStatus(ADC1));	//等待校准结束
 
 	ADC_ExternalTrigConvCmd(ADC1, ENABLE);	//使能ADC1的经外部触发启动转换功能
-	ADC_TempSensorVrefintCmd(ENABLE);	//使能温度传感器和内部参考电压通道
+	//ADC_TempSensorVrefintCmd(ENABLE);	//使能温度传感器和内部参考电压通道
 
 	ADC_Cmd(ADC2, ENABLE);
 	ADC_ResetCalibration(ADC2);
@@ -141,13 +141,13 @@ void adc_Init(void)
 
 
 //定义一个位移传感器的信息结构体
-LVDT_Typedef LVDT;
+LVDT_Typedef LVDT, LVDT2;
 
 //获得髋关节、膝关节的角度和角速度  
 void Get_LVDTDisplaceAndRate(void)  
 {  
     uint8_t i;
-    uint16_t sum=0;
+    uint16_t sum=0, sum2=0;
 	
 	float dt = 0.01f;
 	static uint32_t tPrev=0;
@@ -158,28 +158,39 @@ void Get_LVDTDisplaceAndRate(void)
   
     for (i=0;i<5;i++) 
     {
-        sum += ADCConvertedValue[i*2]&0x0000FFFF;
+        sum += ADCConvertedValue[i*2]&0xFFFF;
+		sum2 += ADCConvertedValue[i*2+1]&0xFFFF;
     }
 	
 	LVDT.AD = sum/5;
+	LVDT2.AD = sum2/5;
 	
 	LVDT.Val = (LVDT.AD/4096.0) * ADC_VREF;
+	LVDT2.Val = (LVDT2.AD/4096.0) * ADC_VREF;
     
-	if(!LVDT.Ready)
+	if(!LVDT.Ready || !LVDT2.Ready)
 	{
-		LVDT.Bias = (LVDT.AD/4096.0) * LVDT_MAX;
+		LVDT.Bias = (LVDT.Val/ADC_MAX_Val) * LVDT_MAX;
 		LVDT.Displace = 0;
 		LVDT.Rate = 0;
 		LVDT.Ready = 1;
+		
+		LVDT2.Bias = (LVDT2.Val/ADC_MAX_Val) * LVDT2_MAX;
+		LVDT2.Displace = 0;
+		LVDT2.Rate = 0;
+		LVDT2.Ready = 1;
+		
 		return;
 	}
 	
 	LVDT.Old = LVDT.Displace;
+	LVDT2.Old = LVDT2.Displace;
 	
-	LVDT.Displace = (LVDT.AD/4096.0) * LVDT_MAX - LVDT.Bias;	//单位cm
+	LVDT.Displace = (LVDT.Val/ADC_MAX_Val) * LVDT_MAX - LVDT.Bias;	//单位cm
+	LVDT2.Displace = (LVDT2.Val/ADC_MAX_Val) * LVDT2_MAX - LVDT2.Bias;
 	
 	LVDT.Rate = (LVDT.Displace - LVDT.Old) / dt;	//单位cm/s
-	
+	LVDT2.Rate = (LVDT2.Displace - LVDT2.Old) / dt;
 	
 }
 
