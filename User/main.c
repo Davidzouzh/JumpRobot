@@ -26,7 +26,6 @@ main.c
 
 #include "timer.h"
 
-#include "key.h"
 #include "usart.h"
 #include "adc.h"
 #include "curve.h"
@@ -35,16 +34,9 @@ main.c
 #include "control.h"
 
 #include "usmart.h"
-
 #include "stdlib.h"
 
 
-
-#define CMD_OUT			0				//液压缸操作指令，伸出、缩回、不操作
-#define CMD_BACK		1
-#define CMD_ZERO		2
-
-uint8_t command = CMD_ZERO;
 
 //以下数据用于输出打印
 //用于监测程序运行时间
@@ -67,15 +59,15 @@ void Set_DefaultDisplace(void);
 //主函数入口
 int main(void)
 {
-	uint8_t i=0,n=0,key=0;
+	uint8_t i=0,n=0;
 	
-	uint32_t ActionStartTime=0;
+	uint32_t ActionStartTime,ActionExecTime,T;
 	
 	SysTick_Init();
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
 	
-	uart_init(9600);
-	KEY_Init();
+	USART1_Config();
+	USART2_Config();
 	adc_Init();
 	PWM_Config();
 	Valve_Init();
@@ -115,21 +107,12 @@ int main(void)
 
 	while(1)
 	{
-		key = KEY_Scan();
-		if( key != 0 )//赋值且判断
-		{
-			if(key == KEY0_PRES)
-				command = CMD_OUT;
-			else
-				command = CMD_BACK;
-			delay_ms(1000);
-		}
-		
 		switch(command)
 		{
-			case CMD_OUT:			//液压缸伸出操作
+			case cmd_out:			//液压缸伸出操作
 				printf("OUT.\r\n\r\n");
 				ActionStartTime = millis();
+				Start_MeasureDistance();
 				while(1)
 				{
 					realExecPrd[0] = micros()-startTime[0];
@@ -179,12 +162,12 @@ int main(void)
 						if(i >= CURVE_LEN)						//曲线进行到结尾，要回到开始，并停止比例阀
 						{
 							i=0;
-							command = CMD_ZERO;
+							command = cmd_zero;
 							break;
 						}
 						if(LVDT.Displace >= LVDT_ProtectMax)	//超程保护，大于限制时停止伸出操作
 						{
-							command = CMD_ZERO;
+							command = cmd_zero;
 							break;
 						}
 						
@@ -192,27 +175,32 @@ int main(void)
 					}
 				
 				}//end of while(1)
-					
+				
+				
 				Valve_DacFlash(0,0);
+				Stop_MeasureDistance();
+				
+				ActionExecTime = millis() - ActionStartTime;
+				T = ActionExecTime/count;
 				
 				printf("OUT done.\r\n");
 				
-				// printf("*****************************************\r\n");	//打印软件执行时间
-				// printf("realExecPrd is %d, %d, %d.\r\n",realExecPrd[0],realExecPrd[1],realExecPrd[2]);
-				// printf("execTime is %d, %d, %d.\r\n",execTime[0],execTime[1],execTime[2]);
+				printf("*****************************************\r\n");	//打印软件执行时间
+				printf("realExecPrd is %d, %d, %d.\r\n",realExecPrd[0],realExecPrd[1],realExecPrd[2]);
+				printf("execTime is %d, %d, %d.\r\n",execTime[0],execTime[1],execTime[2]);
 				printf("*****************************************\r\n");
 				// printf("curve_sp is\r\n");		//打印期望曲线
 				// for(n=0; n<CURVE_LEN; n++)
 				 // printf("%f,  ", curve[n]);
 				// printf("\r\n");
-				printf("Displace is\r\n");		//打印实际位移曲线
-				for(n=0; n<CURVE_LEN; n++)
-				 printf("%f,  ", OUT_Displace[n]);
-				printf("\r\n");
-				printf("Displace2 is\r\n");
-				for(n=0; n<CURVE_LEN; n++)
-				 printf("%f,  ", OUT_Displace2[n]);
-				printf("\r\n");
+				// printf("Displace is\r\n");		//打印实际位移曲线
+				// for(n=0; n<CURVE_LEN; n++)
+				 // printf("%f,  ", OUT_Displace[n]);
+				// printf("\r\n");
+				// printf("Displace2 is\r\n");
+				// for(n=0; n<CURVE_LEN; n++)
+				 // printf("%f,  ", OUT_Displace2[n]);
+				// printf("\r\n");
 				
 				// printf("*****************************************\r\n");
 				// printf("OUT_PID is\r\n");		//打印PID的输出值
@@ -220,24 +208,34 @@ int main(void)
 					// printf("%f,  ", OUT_PID[n]);
 				// printf("\r\n");
 				
+				// printf("*****************************************\r\n");
+				// printf("Pressure1 is\r\n");		//测量的液压1
+				// for(n=0; n<CURVE_LEN; n++)
+				 // printf("%f,  ", OUT_Pressure1[n]);
+				// printf("\r\n");
+				// printf("Pressure2 is\r\n");		//测量的液压2
+				// for(n=0; n<CURVE_LEN; n++)
+				 // printf("%f,  ", OUT_Pressure2[n]);
+				// printf("\r\n");
+				
 				printf("*****************************************\r\n");
-				printf("Pressure1 is\r\n");		//测量的液压1
-				for(n=0; n<CURVE_LEN; n++)
-				 printf("%f,  ", OUT_Pressure1[n]);
-				printf("\r\n");
-				printf("Pressure2 is\r\n");		//测量的液压2
-				for(n=0; n<CURVE_LEN; n++)
-				 printf("%f,  ", OUT_Pressure2[n]);
-				printf("\r\n");
+				printf("measure T is %d\r\n", T);
+				printf("The distance is\r\n");
+				printf("*****************************************\r\n");
+				for(i=0;i<count;i++)
+					printf(" %d,", distance[i]);
+				printf("*****************************************\r\n");
 				
 				printf("\r\n\r\n");
 				
 				PID_Reset();
-				command = CMD_ZERO;
+				Reset_MeasureDistance();
+				
+				command = cmd_zero;
 				break;
 				
 				
-			case CMD_BACK:				//液压缸缩回操作
+			case cmd_back:				//液压缸缩回操作
 				printf("BACK.\r\n\r\n");
 				Valve_DacFlash(0,0);
 				printf("Displace is\r\n");
@@ -258,7 +256,7 @@ int main(void)
 				}
 				Servo_Lock();
 				printf("BACK done.\r\n\r\n");
-				command = CMD_ZERO;
+				command = cmd_zero;
 				break;
 				
 				
