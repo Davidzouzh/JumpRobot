@@ -15,7 +15,7 @@ PID_Typedef LVDT_displace_PID;
 PID_Typedef LVDT_rate_PID;
 
 
-//描述：位置式PID
+//描述：位置式PID的主要实现
 static void PID_Postion_Cal(PID_Typedef *PID, float target, float measure, int32_t dertT)
 {
 	float termI=0;
@@ -111,15 +111,17 @@ void PID_Default(void)
 
 }
 
+//描述：复位PID，主要清除积分值
 void PID_Reset(void)
 {
 	LVDT_displace_PID.Integ = 0.0;
 	LVDT_rate_PID.Integ = 0.0;
 }
 
-//设置到目标位移值时用的是PID的P控制，
+//设置到目标位移值时用的是PID的P控制，需根据效果更改此值
 #define Set_Displace_P		10
 
+//设置液压缸到一定位置
 void Set_Displace(float displace)
 {
 	if(displace>LVDT1_ProtectMax || displace<0)
@@ -185,6 +187,7 @@ void Assign_PID(uint8_t pid_num, uint16_t p, uint16_t i, uint16_t d)
 	}	
 }
 
+//描述：打印PID参数
 void Print_PID(void)
 {
 	printf("\r\n***************************************************\r\n");

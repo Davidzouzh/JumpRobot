@@ -1,7 +1,7 @@
 #include "valve.h"
 #include "usart.h"
 
-
+//DAC初始化
 void DAC_Config(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;

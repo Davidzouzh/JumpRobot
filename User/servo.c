@@ -1,7 +1,6 @@
-
 #include "servo.h"
 
-
+//舵机初始化，初始化一路PWM
 void Servo_Config(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure; 
@@ -19,7 +18,7 @@ void Servo_Config(void)
 
 	//时间基准设置
 	TIM_TimeBaseStructure.TIM_Period = 1999;  
-	TIM_TimeBaseStructure.TIM_Prescaler = 239;		//72Mhz/(719+1)/(999+1)=100Hz
+	TIM_TimeBaseStructure.TIM_Prescaler = 239;		//72Mhz/(239+1)/(1999+1)=?Hz
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;		//设置时钟分频系数：不分频  
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;		//向上计数溢出模式  
 	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
@@ -40,11 +39,13 @@ void Servo_Config(void)
 	TIM_Cmd(TIM3, ENABLE);		//使能TIM3
 }
 
+//舵机锁定
 void Servo_Lock(void)
 {
 	TIM_SetCompare1(TIM3, PWM_ServoLock);
 }
 
+//舵机解锁
 void Servo_Unlock(void)
 {
 	TIM_SetCompare1(TIM3, PWM_ServoUnlock);

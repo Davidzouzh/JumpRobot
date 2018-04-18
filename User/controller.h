@@ -3,6 +3,7 @@
 
 #include "stm32f10x.h"
 
+void System_Config(void);
 void CMD_Action(void);
 void CMD_BACK(void);
 void CMD_OUT(void);

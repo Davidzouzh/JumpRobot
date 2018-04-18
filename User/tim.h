@@ -5,9 +5,10 @@
 
 
 
-void TIM2TIM3_Config(void);
+void TIM1TIM8_Config(void);
 
 void Start_Timer(void);
+void Reset_Timer(void);
 
 #endif
 
