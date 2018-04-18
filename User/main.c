@@ -54,11 +54,15 @@ float OUT_PID[CURVE_LEN];
 float OUT_Pressure1[CURVE_LEN], OUT_Pressure2[CURVE_LEN];
 
 
+#define ServoActionTime		50		//自按下开关开始计时，梯度 5ms
+
 
 //主函数入口
 int main(void)
 {
 	uint8_t i=0,n=0,key=0;
+	
+	uint32_t ActionStartTime=0;
 	
 	SysTick_Init();
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
@@ -70,7 +74,7 @@ int main(void)
 	Valve_Init();
 	usmart_dev.init(72); 		//初始化USMART
 	
-	Servo_Unlock();
+	//Servo_Unlock();
 	
 	Valve_DacFlash(0,2000);		//将液压缸缩回
 	delay_ms(1000);
@@ -107,6 +111,7 @@ int main(void)
 		{
 			case CMD_OUT:			//液压缸伸出操作
 				printf("OUT.\r\n\r\n");
+				ActionStartTime = millis();
 				while(1)
 				{
 					realExecPrd[0] = micros()-startTime[0];
@@ -126,6 +131,12 @@ int main(void)
 						
 						CtrlLVDTRate();				//角速度环PID
 						CtrlValve();				//控制比例阀
+						
+						if( (millis()-ActionStartTime) >= ServoActionTime )
+						{
+							Servo_Unlock();
+							//Servo_Lock();
+						}
 
 						execTime[1]=micros()-startTime[1];
 					}
@@ -140,16 +151,6 @@ int main(void)
 						CtrlLVDTDisplace();			//角度环PID
 						
 						DisplaceSp = curve[i];		//期望曲线赋值
-						
-						if( LVDT.Displace >= UnlockDisplace )
-						{
-							Servo_Unlock();
-							//printf("unlock");
-						}
-						else
-						{
-							Servo_Lock();
-						}
 
 						OUT_Displace[i] = LVDT.Displace;	//用于输出打印
 						OUT_Displace2[i] = LVDT2.Displace;
