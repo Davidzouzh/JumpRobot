@@ -32,10 +32,10 @@ static void PID_Postion_Cal(PID_Typedef *PID, float target, float measure, int32
 	PID->Integ += (PID->Error) * dertT;			//求积分
 	
 	termI = (PID->Integ) + (PID->Error) * dertT;			//求积分
-	if(termI > -PID->iLimit && termI < PID->iLimit && PID->Output > -PID->iLimit && PID->Output < PID->iLimit)       //在iLimit内才进行积分环节
+	//if(termI > -PID->iLimit && termI < PID->iLimit && PID->Output > -PID->iLimit && PID->Output < PID->iLimit)       //在iLimit内才进行积分环节
 		PID->Integ = termI;
-	else
-		PID->Integ = 0;
+	//else
+		//PID->Integ = 0;
 	
 	PID->Output = (PID->P * PID->Error) + (PID->I * PID->Integ) + (PID->D * PID->Deriv);    //PID:比例环节+积分环节+微分环节
 
@@ -107,7 +107,7 @@ void CtrlValve(void)
 void PID_Default(void)
 {
 
-	LVDT_displace_PID.P = 1400.0;		//位置环
+	LVDT_displace_PID.P = 200.0;		//位置环
 	LVDT_displace_PID.I = 0.0;
 	LVDT_displace_PID.Integ = 0.0;
 	LVDT_displace_PID.iLimit = 10000;

@@ -11,22 +11,26 @@ main.c
 					PA5			缩回端
 	-------------------------------------
 	位移传感器		PC0
+					PC1
 	-------------------------------------
 	按键			PA0			伸出
 					PC13		缩回
 	-------------------------------------
-	压力传感器		PC1			1
-					PC2			2
+	压力传感器		PC2			1
+					PC3			2
+	-------------------------------------
+	舵机			PA6	
 -------------------------------------------
 */
 
 #include "timer.h"
+
 #include "key.h"
 #include "usart.h"
-
 #include "adc.h"
 #include "curve.h"
 #include "valve.h"
+#include "pwm.h"
 #include "control.h"
 
 #include "usmart.h"
@@ -45,7 +49,8 @@ uint32_t startTime[5],execTime[5];
 uint32_t realExecPrd[5];
 
 //用于输出数据
-float OUT_Displace[CURVE_LEN], OUT_PID[CURVE_LEN];
+float OUT_Displace[CURVE_LEN], OUT_Displace2[CURVE_LEN];
+float OUT_PID[CURVE_LEN];
 float OUT_Pressure1[CURVE_LEN], OUT_Pressure2[CURVE_LEN];
 
 
@@ -61,28 +66,35 @@ int main(void)
 	uart_init(9600);
 	KEY_Init();
 	adc_Init();
+	PWM_Config();
 	Valve_Init();
+	usmart_dev.init(72); 		//初始化USMART
+	
+	Servo_Unlock();
 	
 	Valve_DacFlash(0,2000);		//将液压缸缩回
 	delay_ms(1000);
 	Valve_DacFlash(0,0);
 	
+	Servo_Lock();
+
+	
 	LVDT.Ready=0;
+	LVDT2.Ready=0;
 	do
 	{
 		Get_LVDTDisplaceAndRate();	//初始化位移传感器的零点
-	}while(LVDT.Ready == 0);
+	}while(LVDT.Ready == 0 && LVDT2.Ready == 0);
 
 	PID_Default();				//PID赋默认值
-	
-	usmart_dev.init(72); 		//初始化USMART
 	
 	printf("system init success.\r\n");
 	
 
 	while(1)
 	{
-		if( key = KEY_Scan())//赋值且判断
+		key = KEY_Scan();
+		if( key != 0 )//赋值且判断
 		{
 			if(key == KEY0_PRES)
 				command = CMD_OUT;
@@ -129,7 +141,18 @@ int main(void)
 						
 						DisplaceSp = curve[i];		//期望曲线赋值
 						
+						if( LVDT.Displace >= UnlockDisplace )
+						{
+							Servo_Unlock();
+							//printf("unlock");
+						}
+						else
+						{
+							Servo_Lock();
+						}
+
 						OUT_Displace[i] = LVDT.Displace;	//用于输出打印
+						OUT_Displace2[i] = LVDT2.Displace;
 						OUT_PID[i] = Out2Valve;
 						OUT_Pressure1[i] = Pressure1;
 						OUT_Pressure2[i++] = Pressure2;
@@ -158,30 +181,37 @@ int main(void)
 				// printf("*****************************************\r\n");	//打印软件执行时间
 				// printf("realExecPrd is %d, %d, %d.\r\n",realExecPrd[0],realExecPrd[1],realExecPrd[2]);
 				// printf("execTime is %d, %d, %d.\r\n",execTime[0],execTime[1],execTime[2]);
-				// printf("*****************************************\r\n");
+				printf("*****************************************\r\n");
 				// printf("curve_sp is\r\n");		//打印期望曲线
 				// for(n=0; n<CURVE_LEN; n++)
-					// printf("%f,  ", curve[n]);
+				 // printf("%f,  ", curve[n]);
 				// printf("\r\n");
-				// printf("Displace is\r\n");		//打印实际位移曲线
-				// for(n=0; n<CURVE_LEN; n++)
-					// printf("%f,  ", OUT_Displace[n]);
-				// printf("\r\n");
+				printf("Displace is\r\n");		//打印实际位移曲线
+				for(n=0; n<CURVE_LEN; n++)
+				 printf("%f,  ", OUT_Displace[n]);
+				printf("\r\n");
+				printf("Displace2 is\r\n");
+				for(n=0; n<CURVE_LEN; n++)
+				 printf("%f,  ", OUT_Displace2[n]);
+				printf("\r\n");
+				
+				// printf("*****************************************\r\n");
 				// printf("OUT_PID is\r\n");		//打印PID的输出值
 				// for(n=0; n<CURVE_LEN; n++)
 					// printf("%f,  ", OUT_PID[n]);
 				// printf("\r\n");
-				// printf("*****************************************\r\n");
-				// printf("Pressure1 is\r\n");		//测量的液压1
-				// for(n=0; n<CURVE_LEN; n++)
-					// printf("%f,  ", OUT_Pressure1[n]);
-				// printf("\r\n");
-				// printf("Pressure2 is\r\n");		//测量的液压2
-				// for(n=0; n<CURVE_LEN; n++)
-					// printf("%f,  ", OUT_Pressure2[n]);
-				// printf("\r\n");
-				// printf("\r\n\r\n");
 				
+				printf("*****************************************\r\n");
+				printf("Pressure1 is\r\n");		//测量的液压1
+				for(n=0; n<CURVE_LEN; n++)
+				 printf("%f,  ", OUT_Pressure1[n]);
+				printf("\r\n");
+				printf("Pressure2 is\r\n");		//测量的液压2
+				for(n=0; n<CURVE_LEN; n++)
+				 printf("%f,  ", OUT_Pressure2[n]);
+				printf("\r\n");
+				
+				printf("\r\n\r\n");
 				command = CMD_ZERO;
 				break;
 				
@@ -205,6 +235,7 @@ int main(void)
 					printf("%f\r\n", LVDT.Displace);
 					delay_ms(50);
 				}
+				Servo_Lock();
 				printf("BACK done.\r\n\r\n");
 				command = CMD_ZERO;
 				break;

@@ -7,7 +7,9 @@
 
 #define ADC_INTERNAL_VREF   1.20		//芯片内部参考电压，理论值1.20v，实际1.16-1.24v
 #define ADC_VREF			3.26		//ADC的参考电压，即为芯片供电电压，要实测，不波动!!!!!
+#define ADC_MAX_Val			2.50
 #define LVDT_MAX			50			//定义缸上位移传感器的电阻最大行程，单位cm
+#define LVDT2_MAX			50
 
 //位移传感器信息结构体
 typedef struct
@@ -22,7 +24,7 @@ typedef struct
 	
 }LVDT_Typedef;
 
-extern LVDT_Typedef LVDT;
+extern LVDT_Typedef LVDT, LVDT2;
 extern float Pressure1, Pressure2;
 
 void adc_Init(void);
