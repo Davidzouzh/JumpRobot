@@ -35,7 +35,6 @@ controller.c
 #include "pidctrl.h"
 #include "servo.h"
 #include "relay.h"
-#include "tim.h"
 #include "usmart.h"
 
 
@@ -62,7 +61,6 @@ void System_Config(void)
 	DAC_Config();		//DAC初始化，阀
 	Servo_Config();		//舵机初始化，初始化一路PWM
 	Relay_Config();		//电磁继电器初始化，初始化两路开关量
-	TIM1TIM8_Config();	//定时器1 8的初始化
 	usmart_dev.init(72);	//usmart调试组件初始化
 	
 	//系统初始化
@@ -140,6 +138,19 @@ void CMD_Action(void)
 		
 		execTime[0]=micros()-startTime[0];	//软件执行时间测量：计算执行时间
 		
+		if(Timer1Trg == 1)				//定时器1定时时间到执行的动作
+		{
+			Timer1Trg = 0;
+			//Servo_Unlock();
+			Relay2_Actuate();
+			
+		}
+		if(Timer2Trg == 1)				//定时器2定时时间到执行的动作
+		{
+			Timer2Trg = 0;
+			Relay2_Release();
+		}
+		
 		if(loop200HzFlag)//每5ms执行一次
 		{
 			loop200HzFlag=0;	//清除标志位
@@ -188,10 +199,9 @@ void CMD_Action(void)
 
 	//停止
 	Valve_DacFlash(0,0);	//关阀
+	Stop_Timer();			//停止定时器
 	Stop_MeasureDistance();		//停止测量
 	
-	TIM_Cmd(TIM1, DISABLE);
-	TIM_Cmd(TIM8, DISABLE);
 
 	printf("\r\nOUT done.\r\n\r\n");
 
@@ -250,7 +260,6 @@ void CMD_OUT(void)
 
 
 //指令：系统复位
-//只做3件事，1-初始化位移传感器的零点，2-清除PID的积分值，3-复位激光测距传感器
 void CMD_Reset_System(void)
 {
 	Valve_DacFlash(0,2000);		//将液压缸缩回

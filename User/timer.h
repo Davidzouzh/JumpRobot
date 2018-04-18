@@ -3,7 +3,7 @@
 
 #include "stm32f10x.h"
 
-extern uint8_t  loop200HzFlag,loop100HzFlag,loop50HzFlag,loop10HzFlag;
+extern uint8_t  loop200HzFlag,loop100HzFlag;
 
 //滴答定时器初始化
 //config被系统占用了，用init
@@ -16,8 +16,14 @@ uint32_t millis(void);
 //延时，占用CPU的延时
 void delay_us(uint32_t nus);
 void delay_ms(uint32_t nms);
-	
 
+
+
+
+extern uint8_t Timer1Trg,Timer2Trg;
+
+void Start_Timer(void);
+void Stop_Timer(void);
 
 #endif
 
