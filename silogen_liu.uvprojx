@@ -51,7 +51,7 @@
           <OutputName>silogen_liu</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
-          <CreateHexFile>1</CreateHexFile>
+          <CreateHexFile>0</CreateHexFile>
           <DebugInformation>1</DebugInformation>
           <BrowseInformation>1</BrowseInformation>
           <ListingPath>.\Listings\</ListingPath>
@@ -137,7 +137,7 @@
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2CM3.DLL</Flash2>
-          <Flash3></Flash3>
+          <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -392,7 +392,7 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>STARTUP</GroupName>
+          <GroupName>START_UP</GroupName>
           <Files>
             <File>
               <FileName>startup_stm32f10x_hd.s</FileName>
@@ -522,7 +522,7 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>User</GroupName>
+          <GroupName>USER</GroupName>
           <Files>
             <File>
               <FileName>adc.c</FileName>
@@ -530,19 +530,29 @@
               <FilePath>.\User\adc.c</FilePath>
             </File>
             <File>
-              <FileName>control.c</FileName>
+              <FileName>controller.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\User\control.c</FilePath>
-            </File>
-            <File>
-              <FileName>key.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\key.c</FilePath>
+              <FilePath>.\User\controller.c</FilePath>
             </File>
             <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\User\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>pidctrl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\pidctrl.c</FilePath>
+            </File>
+            <File>
+              <FileName>relay.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\relay.c</FilePath>
+            </File>
+            <File>
+              <FileName>servo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\User\servo.c</FilePath>
             </File>
             <File>
               <FileName>timer.c</FileName>
@@ -559,15 +569,10 @@
               <FileType>1</FileType>
               <FilePath>.\User\valve.c</FilePath>
             </File>
-            <File>
-              <FileName>pwm.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\pwm.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
-          <GroupName>Usmart</GroupName>
+          <GroupName>USMART</GroupName>
           <Files>
             <File>
               <FileName>usmart.c</FileName>

@@ -233,7 +233,7 @@ void TIM4_IRQHandler(void)
 { 		    		  			    
 	if(TIM4->SR&0X0001)//溢出中断
 	{ 
-		usmart_dev.scan();	//执行usmart扫描	
+		//usmart_dev.scan();	//执行usmart扫描	
 		TIM4->CNT=0;		//清空定时器的CNT
 		TIM4->ARR=1000;		//恢复原来的设置
 	}				   
@@ -242,7 +242,7 @@ void TIM4_IRQHandler(void)
 //使能定时器4,使能中断.
 void Timer4_Init(u16 arr,u16 psc)
 {
-     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE); //TIM4时钟使能 

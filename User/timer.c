@@ -1,8 +1,4 @@
-
-
 #include "timer.h"
-
-#include "pwm.h"
 
 volatile uint32_t sysTickUptime = 0;
 volatile uint32_t usTicks = 0;
@@ -45,13 +41,13 @@ void SysTick_Handler(void)
 //config被系统占用了，用init
 void SysTick_Init(void)
 {
-		RCC_ClocksTypeDef clocks;
-		SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK_Div8);	//选择外部时钟  HCLK/8  
+	RCC_ClocksTypeDef clocks;
+	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK_Div8);	//选择外部时钟  HCLK/8  
 
-    RCC_GetClocksFreq(&clocks);
-    usTicks = clocks.SYSCLK_Frequency/1000000;	//初始化usTicks
-	
-		SysTick_Config(SystemCoreClock/1000);	//SysTick开启系统tick定时器并初始化其中断，1ms
+	RCC_GetClocksFreq(&clocks);
+	usTicks = clocks.SYSCLK_Frequency/1000000;	//初始化usTicks
+
+	SysTick_Config(SystemCoreClock/1000);	//SysTick开启系统tick定时器并初始化其中断，1ms
 }
 
 // Return system uptime in microseconds (rollover in 70minutes)

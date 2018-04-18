@@ -1,23 +1,18 @@
-
-#include "control.h"
-#include "valve.h"
-#include "adc.h"
+#include "pidctrl.h"
 #include "timer.h"
 #include "usart.h"
 
+#include "adc.h"
+#include "valve.h"
 
 
 
 float DisplaceSp=0;		//期望位移值
 float Out2Valve=0;		//PID计算后输出给阀的计算值
 
-
 //----PID结构体实例化----
 PID_Typedef LVDT_displace_PID;
 PID_Typedef LVDT_rate_PID;
-
-
-
 
 
 //描述：位置式PID
@@ -43,9 +38,6 @@ static void PID_Postion_Cal(PID_Typedef *PID, float target, float measure, int32
 
 }
 
-
-
-
 //描述：对比例阀控制中的串级PID中的位置环控制
 void CtrlLVDTDisplace(void)
 {
@@ -56,13 +48,11 @@ void CtrlLVDTDisplace(void)
     dt=(tPrev>0) ? (now-tPrev)/1000000.0f : 0;	//dt的单位是s
     tPrev=now;
 	
-	PID_Postion_Cal(&LVDT_displace_PID, DisplaceSp, LVDT.Displace, dt);
+	PID_Postion_Cal(&LVDT_displace_PID, DisplaceSp, LVDT1.Displace, dt);
 
 	Out2Valve = LVDT_displace_PID.Output;
 
 }
-
-
 
 //描述：对比例阀控制中的串级PID中的速度环控制
 void CtrlLVDTRate(void)
@@ -74,14 +64,11 @@ void CtrlLVDTRate(void)
     dt=(tPrev>0) ? (now-tPrev)/1000000.0f : 0;	//dt的单位是s
     tPrev=now;
 	
-	PID_Postion_Cal(&LVDT_rate_PID, LVDT_displace_PID.Output, LVDT.Rate, dt);	
+	PID_Postion_Cal(&LVDT_rate_PID, LVDT_displace_PID.Output, LVDT1.Rate, dt);	
 	
 	//Out2Valve = LVDT_rate_PID.Output;
 
 }
-
-
-
 
 //描述：输出PWM，控制比例阀
 void CtrlValve(void)
@@ -106,20 +93,21 @@ void CtrlValve(void)
 //描述：PID赋缺省值
 void PID_Default(void)
 {
-
 	LVDT_displace_PID.P = 200.0;		//位置环
 	LVDT_displace_PID.I = 0.0;
-	LVDT_displace_PID.Integ = 0.0;
-	LVDT_displace_PID.iLimit = 10000;
 	LVDT_displace_PID.D = 0.0;
+	
+	LVDT_displace_PID.Integ = 0.0;//积分初值
+	LVDT_displace_PID.iLimit = 10000;//积分限制值
+
 	
 	LVDT_rate_PID.P = 100.0;			//速度环
 	LVDT_rate_PID.I = 0.0;
-	LVDT_rate_PID.Integ = 0.0;
-	LVDT_rate_PID.iLimit = 10000;
 	LVDT_rate_PID.D = 0.0;
+	
+	LVDT_rate_PID.Integ = 0.0;//积分初值
+	LVDT_rate_PID.iLimit = 10000;//积分限制值
 
-	printf("PID_Default.\r\n");
 
 }
 
@@ -129,12 +117,51 @@ void PID_Reset(void)
 	LVDT_rate_PID.Integ = 0.0;
 }
 
+//设置到目标位移值时用的是PID的P控制，
+#define Set_Displace_P		10
+
+void Set_Displace(float displace)
+{
+	if(displace>LVDT1_ProtectMax || displace<0)
+	{
+		printf("\r\nout of range,set displace fail.\r\n");
+		return;
+	}
+	do
+	{
+		Get_LVDTDisplaceAndRate();
+		if( LVDT1.Displace < displace )
+		{
+			Valve_DacFlash(Set_Displace_P*(int32_t)(displace-LVDT1.Displace)+VALVE_DEADLINE_OUT, 0);
+		}
+		else
+		{
+			Valve_DacFlash(0, Set_Displace_P*(int32_t)(LVDT1.Displace-displace)+VALVE_DEADLINE_IN);
+		}
+	}while(	LVDT1.Rate<0.2 && LVDT1.Rate>-0.2 &&
+		(LVDT1.Displace-displace)<0.2 && (LVDT1.Displace-displace)>-0.2 );//速度小于0.2，且静态偏差小于0.2则认为初始化完成
+	
+	Valve_DacFlash(0,0);
+	printf("\r\ndisplace is %f.\r\n", LVDT1.Displace);
+	if(	LVDT1.Rate<0.2 && LVDT1.Rate>-0.2 &&
+		(LVDT1.Displace-displace)<0.2 && (LVDT1.Displace-displace)>-0.2 )
+	{
+		
+	}
+	else
+	{
+		printf("displace is not right.\r\n");
+	}
+
+
+}
+
 
 //描述：PID赋值，主要由usmart组件调用
 //注意：参数 pid_num
 //		0-位置环
 //		1-速度环
-void PID_assign(uint8_t pid_num, uint16_t p, uint16_t i, uint16_t d)
+void Assign_PID(uint8_t pid_num, uint16_t p, uint16_t i, uint16_t d)
 {
 	switch(pid_num)
 	{
@@ -153,15 +180,14 @@ void PID_assign(uint8_t pid_num, uint16_t p, uint16_t i, uint16_t d)
 			break;
 			
 		default:
-			printf("pid_num error...\r\n");
+			printf("\r\npid_num error...\r\n");
 			break;
 	}	
 }
 
-void PID_Printf(void)
+void Print_PID(void)
 {
-	printf("\r\n");
-	printf("***************************************************\r\n");
+	printf("\r\n***************************************************\r\n");
 	printf("LVDT\r\n");
 	printf("displace pid:\r\n");
 	printf("p          i          d\r\n");
