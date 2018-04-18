@@ -28,49 +28,8 @@ main.c
 */
 
 
-#include "stm32f10x.h"
-#include "timer.h"
-#include "usart.h"
-#include "adc.h"
-#include "valve.h"
-#include "servo.h"
-#include "relay.h"
+#include "controller.h"
 #include "usmart.h"
-#include "pidctrl.h"
-
-
-
-
-void System_Config(void)
-{
-	SysTick_Init();
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-	
-	//外设初始化
-	USART1_Config();
-	USART2_Config();
-	ADC_Config();
-	DAC_Config();
-	Servo_Config();
-	Relay_Config();
-	usmart_dev.init(72);
-	
-	//系统初始化
-	Valve_DacFlash(0,2000);		//将液压缸缩回
-	delay_ms(1000);
-	Valve_DacFlash(0,0);
-	
-	Servo_Lock();
-
-	Get_LVDTDisplaceAndRate();	//初始化位移传感器的零点
-
-	PID_Default();				//PID赋默认值
-	
-	//Set_Displace(0);			//设置默认位移值
-	
-	printf("\r\nsystem init success.\r\n\r\n");
-}
-
 
 
 int main(void)

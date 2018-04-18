@@ -3,10 +3,10 @@
 #include "usart.h"
 
 
-
+//原始数据缓冲区
 __IO uint32_t ADCConvertedValue[10];
 
-
+//ADC初始化
 void ADC_Config(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -136,15 +136,15 @@ void Get_LVDTDisplaceAndRate(void)
 		sum2 += ADCConvertedValue[i*2+1]&0xFFFF;
     }
 	
-	LVDT1.AD = sum1/5;
+	LVDT1.AD = sum1/5;	//平均值滤波
 	LVDT2.AD = sum2/5;
 	
-	LVDT1.Val = (LVDT1.AD/4096.0) * ADC_VREF;
+	LVDT1.Val = (LVDT1.AD/4096.0) * ADC_VREF;	//计算电压值
 	LVDT2.Val = (LVDT2.AD/4096.0) * ADC_VREF;
     
-	if(!LVDT1.Ready || !LVDT2.Ready)
+	if(!LVDT1.Ready || !LVDT2.Ready)//如未初始化位移传感器的零点，则需初始化
 	{
-		LVDT1.Bias = (LVDT1.Val/ADC_MAX_VAL) * LVDT1_MAX;
+		LVDT1.Bias = (LVDT1.Val/ADC_MAX_VAL) * LVDT1_MAX;	//零点偏移值
 		LVDT1.Displace = 0;
 		LVDT1.Rate = 0;
 		LVDT1.Ready = 1;
@@ -156,7 +156,7 @@ void Get_LVDTDisplaceAndRate(void)
 		return;
 	}
 	
-	LVDT1.Old = LVDT1.Displace;
+	LVDT1.Old = LVDT1.Displace;		//上一次的位移值，用于计算速度
 	LVDT2.Old = LVDT2.Displace;
 	
 	LVDT1.Displace = (LVDT1.Val/ADC_MAX_VAL) * LVDT1_MAX - LVDT1.Bias;	//单位cm
@@ -167,7 +167,7 @@ void Get_LVDTDisplaceAndRate(void)
 	
 }
 
-
+//压强的全局变量
 float Pressure1=0, Pressure2=0;
 
 void Get_Pressure(void)
@@ -181,6 +181,7 @@ void Get_Pressure(void)
     }
 	adc = adc/5;
 	adc2 = adc2/5;
+	//根据压力标定公式标定压强
 	//p = 0.1132*v+0.7890
 	//v = 8.8339*p+6.8905
 	//单位：v-V, p-MPa
@@ -190,6 +191,7 @@ void Get_Pressure(void)
 }
 
 
+//调试用函数
 void Print_LVDTDisplaceAndRate(void)
 {
 	Get_LVDTDisplaceAndRate();

@@ -13,7 +13,7 @@ void SysTick_Handler(void)
 	//1ms加1，用于读取系统时间和延时
 	sysTickUptime++;
 	
-	if(++loop200HzCnt*200 >= 1000)
+	if(++loop200HzCnt*200 >= 1000)		//主循环中5ms，10ms，20ms周期的实现
 	{
 		loop200HzCnt=0;
 		loop200HzFlag=1;

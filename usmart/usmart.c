@@ -259,7 +259,7 @@ void Timer4_Init(u16 arr,u16 psc)
 	//TIM4中断分组配置
 	NVIC_InitStructure.NVIC_IRQChannel = TIM4_IRQn;  //TIM3中断
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;  //先占优先级03级
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;  //从优先级3级
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;  //从优先级3级
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; //IRQ通道被使能
 	NVIC_Init(&NVIC_InitStructure);  //根据NVIC_InitStruct中指定的参数初始化外设NVIC寄存器
 

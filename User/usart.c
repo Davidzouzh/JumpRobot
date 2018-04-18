@@ -163,18 +163,19 @@ void USART2_Config(void)
 	
 }
 
-
+//USART2串口用
 uint8_t TxBuffer2[256];
 uint8_t RxBuffer2[256];
 uint8_t cnt2=0;
 uint8_t TxCnt2=0;
 uint8_t RxCnt2=0;
 
-uint8_t StartMeasureFlag=0;
-uint16_t DistanceBufCnt=0;
-uint16_t DistanceBuf[1000];
+//激光测距用
+uint8_t StartMeasureFlag=0;		//启停标志位
+uint16_t DistanceBufCnt=0;		//测量的数据个数
+uint16_t DistanceBuf[1000];		//测量的数据缓冲区
 
-
+//对串口2接受到的数据进行解包
 void Usart2_CopeSerial2Data(uint8_t ucData)
 {
 	uint8_t i,checksum=0;
@@ -195,11 +196,11 @@ void Usart2_CopeSerial2Data(uint8_t ucData)
 		RxCnt2=0;
 		return;
 	}
-	if(RxCnt2<8)//数目不够
+	if(RxCnt2<8)			//数目不够
 	{
 		return;
 	}
-	for(i=0;i<7;i++)
+	for(i=0;i<7;i++)		//检校和检查
 	{
 		checksum += RxBuffer2[i];
 	}
@@ -211,7 +212,7 @@ void Usart2_CopeSerial2Data(uint8_t ucData)
 	}
 	else
 	{
-		DistanceBuf[DistanceBufCnt++] = RxBuffer2[4]<<8 | RxBuffer2[5];
+		DistanceBuf[DistanceBufCnt++] = RxBuffer2[4]<<8 | RxBuffer2[5];		//计算距离
 		RxCnt2=0;
 	}
 	
@@ -238,6 +239,7 @@ void USART2_IRQHandler(void)
 	USART_ClearITPendingBit(USART2, USART_IT_ORE);
 }
 
+//串口2发送字节
 void USART2_Put_Char(uint8_t DataToSend)
 {
 	TxBuffer2[cnt2++] = DataToSend;  
@@ -248,40 +250,46 @@ void USART2_Put_Char(uint8_t DataToSend)
 
 uint32_t MeasureStartTime,Measure_T=0;
 
+//激光测距启动测量
 void Start_MeasureDistance(void)
 {
 	StartMeasureFlag=1;
 	DistanceBufCnt=0;
 	
-	MeasureStartTime = micros();
+	MeasureStartTime = micros();	//获取起始时间点
 }
 
+//激光测距停止测量
 void Stop_MeasureDistance(void)
 {
 	StartMeasureFlag=0;
 	
-	Measure_T = (micros()-MeasureStartTime)/DistanceBufCnt;
+	Measure_T = (micros()-MeasureStartTime)/DistanceBufCnt;		//计算测量周期
 }
 
+//复位激光测距传感器
 void Reset_MeasureDistance(void)
 {
 	StartMeasureFlag=0;
 	DistanceBufCnt=0;
 }
 
+//打印出激光测距的数据
 void Print_MeasureDistance(void)
 {
 	uint16_t i;
 	
 	printf("\r\n*****************************************\r\n");
-	printf("measure T is %d us.\r\n", Measure_T);
-	printf("The distance is\r\n");
+	printf("measure T is %d us.\r\n", Measure_T);		//测量周期
+	printf("measure point number is %d.\r\n", DistanceBufCnt);		//点的个数
+	printf("The distance is\r\n");		//数据点，单位ms
 	for(i=0;i<DistanceBufCnt;i++)
 		printf("%d, ", DistanceBuf[i]);
 	
 	printf("\r\n*****************************************\r\n");
 }
 
+//设置激光测距传感器，激光测距传感器会自行保存设置，基本不用
 void Set_MeasureDistance(void)
 {
 	USART2_Put_Char(0xA5);//连续输出距离数据
